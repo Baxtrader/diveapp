@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     POSTGRES_PORT: str = config("POSTGRES_PORT", default="5432")
     
     @property
-    def DATABASE_URL(self) -> str:
+    def DATABASE_URL_COMPUTED(self) -> str:
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
     
     # Redis

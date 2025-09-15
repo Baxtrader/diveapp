@@ -36,20 +36,28 @@ async def health_check():
     """
     return {"status": "healthy"}
 
-@app.get("/api/v1/test")
-async def test_endpoint():
+@app.get("/api/v1/test-db")
+async def test_database(db: Session = Depends(get_db)):
     """
-    Endpoint de prueba para la API v1
+    Endpoint para probar la conexión a la base de datos
     """
-    return {
-        "message": "API v1 funcionando correctamente",
-        "endpoints": [
-            "/api/v1/auth - Autenticación",
-            "/api/v1/users - Usuarios", 
-            "/api/v1/dive-logs - Registros de buceo",
-            "/api/v1/operators - Operadores de buceo"
-        ]
-    }
+    try:
+        # Ejecutar una query simple para probar la conexión
+        result = db.execute("SELECT 1 as test_value")
+        test_value = result.fetchone()[0]
+        
+        return {
+            "message": "✅ Conexión a base de datos exitosa",
+            "database_url": settings.DATABASE_URL_COMPUTED[:30] + "...",  # Solo mostrar inicio por seguridad
+            "test_result": test_value,
+            "environment": settings.ENVIRONMENT
+        }
+    except Exception as e:
+        return {
+            "message": "❌ Error conectando a la base de datos", 
+            "error": str(e),
+            "environment": settings.ENVIRONMENT
+        }
 
 # Solo para desarrollo local
 if __name__ == "__main__":

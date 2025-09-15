@@ -5,7 +5,7 @@ from app.core.config import settings
 
 # Create database engine
 engine = create_engine(
-    settings.DATABASE_URL,
+    settings.DATABASE_URL_COMPUTED,
     pool_pre_ping=True,  # Verify connections before use
     echo=False,  # Set to True for SQL query logging
 )
