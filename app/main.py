@@ -127,26 +127,43 @@ async def api_info():
         }
     }
 
-@app.get("/api/v1/status")
-async def status():
+@app.get("/api/v1/create-tables")
+async def create_tables():
     """
-    Status completo del sistema
+    Crear todas las tablas en la base de datos (SOLO USAR UNA VEZ)
     """
-    # Test rápido de database
     try:
-        from app.core.database import check_database_connection
-        db_status = check_database_connection()
-    except:
-        db_status = False
-    
-    return {
-        "api_status": "online",
-        "database_status": "connected" if db_status else "disconnected",
-        "environment": settings.ENVIRONMENT,
-        "version": "1.0.0",
-        "uptime": "running",
-        "ready_for_development": True
-    }
+        # Importar todos los modelos
+        from app.models.user import User
+        from app.models.dive_log import DiveLog
+        from app.core.database import Base, engine
+        
+        # Crear todas las tablas
+        Base.metadata.create_all(bind=engine)
+        
+        # Verificar que las tablas se crearon
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        
+        return {
+            "message": "✅ Tablas creadas exitosamente",
+            "tables_created": tables,
+            "models_imported": ["User", "DiveLog"],
+            "next_step": "Ya puedes usar endpoints de registro y dive logs",
+            "warning": "Solo ejecutar este endpoint UNA vez"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "❌ Error creando tablas",
+                "error": str(e),
+                "type": type(e).__name__,
+                "suggestion": "Verifica que los modelos estén bien definidos"
+            }
+        )
 
 # Solo para desarrollo local
 if __name__ == "__main__":
