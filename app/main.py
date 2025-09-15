@@ -1,10 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import os
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.core.config import settings
+import uvicorn
 
 app = FastAPI(
     title="DiveApp API",
-    description="API para la aplicación de buceo",
+    description="API completa para la aplicación de buceo",
     version="1.0.0",
 )
 
@@ -23,55 +26,83 @@ async def root():
         "version": "1.0.0",
         "status": "running",
         "python_version": "3.11.9",
-        "environment": os.getenv("ENVIRONMENT", "production")
+        "environment": settings.ENVIRONMENT,
+        "database_configured": True
     }
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "python_version": "3.11.9"}
+    return {
+        "status": "healthy", 
+        "python_version": "3.11.9",
+        "environment": settings.ENVIRONMENT
+    }
 
 @app.get("/api/v1/test-db")
-async def test_database_simple():
+async def test_database(db: Session = Depends(get_db)):
     """
-    Test simple de DATABASE_URL
+    Test real de conexión a PostgreSQL
     """
-    database_url = os.getenv("DATABASE_URL")
-    
-    if database_url:
+    try:
+        # Ejecutar query real para probar conexión
+        result = db.execute("SELECT 1 as test_value, current_timestamp as timestamp, version() as db_version")
+        row = result.fetchone()
+        
         return {
-            "message": "✅ DATABASE_URL encontrada",
-            "has_database_url": True,
-            "url_preview": database_url[:30] + "..." if len(database_url) > 30 else database_url,
-            "ready_for": "SQLAlchemy import en próximo deploy"
+            "message": "✅ Conexión a base de datos exitosa",
+            "test_result": row[0],
+            "timestamp": str(row[1]),
+            "database_version": row[2][:50] + "..." if len(row[2]) > 50 else row[2],
+            "environment": settings.ENVIRONMENT,
+            "ready_for": "Crear tablas y endpoints"
         }
-    else:
-        return {
-            "message": "❌ DATABASE_URL no encontrada",
-            "has_database_url": False,
-            "note": "Agrega DATABASE_URL en Environment Variables de Render"
-        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "❌ Error conectando a la base de datos",
+                "error": str(e),
+                "type": type(e).__name__
+            }
+        )
 
 @app.get("/api/v1/info")
 async def api_info():
     """
-    Información de la API
+    Información completa de la API
     """
     return {
         "api_name": "DiveApp API",
         "version": "1.0.0",
         "python_version": "3.11.9",
-        "status": "stable",
+        "environment": settings.ENVIRONMENT,
+        "status": "production_ready",
+        "features": {
+            "database": "PostgreSQL with PostGIS",
+            "authentication": "JWT tokens",
+            "validation": "Pydantic v2"
+        },
         "endpoints": {
-            "main": "/",
             "health": "/health",
             "database_test": "/api/v1/test-db",
             "documentation": "/docs",
-            "info": "/api/v1/info"
+            "api_info": "/api/v1/info"
         },
-        "next_features": [
-            "SQLAlchemy models",
-            "User authentication", 
-            "Dive log endpoints",
-            "Operator directory"
+        "coming_soon": [
+            "/api/v1/auth/register - Registro de usuarios",
+            "/api/v1/auth/login - Login",
+            "/api/v1/users/me - Perfil de usuario",
+            "/api/v1/dive-logs - CRUD de registros de buceo",
+            "/api/v1/operators - Directorio de operadores"
         ]
     }
+
+# Solo para desarrollo local
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )
