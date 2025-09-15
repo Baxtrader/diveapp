@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import os
 
 # Create FastAPI instance
 app = FastAPI(
@@ -12,7 +13,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,7 +27,8 @@ async def root():
     return {
         "message": "¡Bienvenido a DiveApp API!",
         "version": "1.0.0",
-        "status": "running"
+        "status": "running",
+        "environment": os.getenv("ENVIRONMENT", "development")
     }
 
 @app.get("/health")
@@ -36,28 +38,16 @@ async def health_check():
     """
     return {"status": "healthy"}
 
-@app.get("/api/v1/test-db")
-async def test_database(db: Session = Depends(get_db)):
+@app.get("/api/v1/test")
+async def test_endpoint():
     """
-    Endpoint para probar la conexión a la base de datos
+    Endpoint de prueba simple
     """
-    try:
-        # Ejecutar una query simple para probar la conexión
-        result = db.execute("SELECT 1 as test_value")
-        test_value = result.fetchone()[0]
-        
-        return {
-            "message": "✅ Conexión a base de datos exitosa",
-            "database_url": settings.DATABASE_URL_COMPUTED[:30] + "...",  # Solo mostrar inicio por seguridad
-            "test_result": test_value,
-            "environment": settings.ENVIRONMENT
-        }
-    except Exception as e:
-        return {
-            "message": "❌ Error conectando a la base de datos", 
-            "error": str(e),
-            "environment": settings.ENVIRONMENT
-        }
+    return {
+        "message": "API v1 funcionando correctamente",
+        "database_url_exists": bool(os.getenv("DATABASE_URL")),
+        "environment": os.getenv("ENVIRONMENT", "development")
+    }
 
 # Solo para desarrollo local
 if __name__ == "__main__":
