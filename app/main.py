@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import get_db
 from app.core.config import settings
+from app.api.v1 import auth, dive_logs
 import uvicorn
 
 # Create FastAPI instance
@@ -23,6 +24,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(dive_logs.router, prefix="/api/v1/dive-logs", tags=["Dive Logs"])
 
 @app.get("/")
 async def root():
