@@ -29,6 +29,10 @@ async def root():
         "status": "simplified_version"
     }
 
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
 @app.get("/api/v1/test-db")
 async def test_database_working(db: Session = Depends(get_db)):
     """
@@ -69,6 +73,11 @@ async def test_models_simple():
         }
         
     except Exception as e:
+        return {
+            "message": "❌ Error en modelos",
+            "error": str(e)
+        }
+
 @app.get("/api/v1/recreate-tables")
 async def recreate_tables():
     """
@@ -102,6 +111,9 @@ async def recreate_tables():
         return {
             "message": "❌ Error recreando tablas",
             "error": str(e),
+            "type": type(e).__name__
+        }
+
 @app.post("/api/v1/register")
 async def register_user_simple(
     email: str,
@@ -199,3 +211,7 @@ async def login_user_simple(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
