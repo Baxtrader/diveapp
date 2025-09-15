@@ -1,2 +1,43 @@
+# FastAPI and server
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.23
+psycopg[binary]
+alembic==1.12.1
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Data validation
+pydantic==2.9.2
+pydantic-core==2.23.4
+email-validator==2.1.0
+
+# Geographic data
+geoalchemy2==0.14.2
+shapely==2.0.7
+
+# Image/File processing
+pillow==11.0.0
+python-magic==0.4.27
+
+# HTTP requests
+httpx==0.25.2
+requests==2.31.0
+
+# Environment variables
+python-decouple==3.8
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+isort==5.12.0
+
+# Deployment
+gunicorn==21.2.0
