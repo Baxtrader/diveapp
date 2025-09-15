@@ -1,15 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.core.config import settings
-import uvicorn
+import os
 
-app = FastAPI(
-    title="DiveApp API",
-    description="API completa para la aplicación de buceo",
-    version="1.0.0",
-)
+app = FastAPI(title="DiveApp API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,94 +15,76 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {
-        "message": "¡Bienvenido a DiveApp API!",
+        "message": "✅ DiveApp API funcionando",
         "version": "1.0.0",
-        "status": "running",
-        "python_version": "3.11.9",
-        "environment": settings.ENVIRONMENT,
-        "database_configured": True
+        "status": "online"
     }
 
 @app.get("/health")
-async def health_check():
+async def health():
+    return {"status": "healthy"}
+
+@app.get("/api/v1/debug")
+async def debug():
+    """
+    Debug de configuración sin imports complejos
+    """
+    database_url = os.getenv("DATABASE_URL", "NOT_SET")
+    
     return {
-        "status": "healthy", 
+        "environment": os.getenv("ENVIRONMENT", "not_set"),
+        "has_database_url": bool(database_url and database_url != "NOT_SET"),
+        "database_url_preview": database_url[:50] + "..." if database_url and len(database_url) > 50 else database_url,
         "python_version": "3.11.9",
-        "environment": settings.ENVIRONMENT
+        "config_status": "checking imports..."
     }
 
-@app.get("/api/v1/test-db")
-async def test_database(db: Session = Depends(get_db)):
+@app.get("/api/v1/test-config")
+async def test_config():
     """
-    Test real de conexión a PostgreSQL
+    Test de importación de config
     """
     try:
-        # Import text dentro de la función para asegurar disponibilidad
-        from sqlalchemy import text
+        from app.core.config import settings
+        return {
+            "message": "✅ Config importado exitosamente",
+            "environment": settings.ENVIRONMENT,
+            "has_database_url": bool(settings.DATABASE_URL),
+            "computed_url_preview": settings.DATABASE_URL_COMPUTED[:50] + "..."
+        }
+    except Exception as e:
+        return {
+            "message": "❌ Error importando config",
+            "error": str(e),
+            "type": type(e).__name__
+        }
+
+@app.get("/api/v1/test-db-simple")
+async def test_database_simple():
+    """
+    Test simple de database sin dependency injection
+    """
+    try:
+        from app.core.config import settings
+        from sqlalchemy import create_engine, text
         
-        # Ejecutar query real para probar conexión
-        result = db.execute(text("SELECT 1 as test_value, current_timestamp as timestamp"))
-        row = result.fetchone()
+        # Crear engine temporal
+        engine = create_engine(settings.DATABASE_URL_COMPUTED)
         
-        # Separar query para version
-        version_result = db.execute(text("SELECT version()"))
-        version_row = version_result.fetchone()
-        
+        # Test connection
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT 1 as test"))
+            row = result.fetchone()
+            
         return {
             "message": "✅ Conexión a base de datos exitosa",
             "test_result": row[0],
-            "timestamp": str(row[1]),
-            "database_version": version_row[0][:50] + "..." if len(version_row[0]) > 50 else version_row[0],
-            "environment": settings.ENVIRONMENT,
-            "ready_for": "Crear tablas y endpoints"
+            "database_url_works": True
         }
         
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "message": "❌ Error conectando a la base de datos",
-                "error": str(e),
-                "type": type(e).__name__
-            }
-        )
-
-@app.get("/api/v1/info")
-async def api_info():
-    """
-    Información completa de la API
-    """
-    return {
-        "api_name": "DiveApp API",
-        "version": "1.0.0",
-        "python_version": "3.11.9",
-        "environment": settings.ENVIRONMENT,
-        "status": "production_ready",
-        "features": {
-            "database": "PostgreSQL with PostGIS",
-            "authentication": "JWT tokens",
-            "validation": "Pydantic v2"
-        },
-        "endpoints": {
-            "health": "/health",
-            "database_test": "/api/v1/test-db",
-            "documentation": "/docs",
-            "api_info": "/api/v1/info"
-        },
-        "coming_soon": [
-            "/api/v1/auth/register - Registro de usuarios",
-            "/api/v1/auth/login - Login",
-            "/api/v1/users/me - Perfil de usuario",
-            "/api/v1/dive-logs - CRUD de registros de buceo",
-            "/api/v1/operators - Directorio de operadores"
-        ]
-    }
-
-# Solo para desarrollo local
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+        return {
+            "message": "❌ Error de conexión",
+            "error": str(e),
+            "type": type(e).__name__
+        }
