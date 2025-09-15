@@ -212,6 +212,127 @@ async def login_user_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
 
+@app.post("/api/v1/dive-logs")
+async def create_dive_log(
+    user_id: int,
+    dive_site_name: str,
+    max_depth: float,
+    dive_date: str,  # formato: "2025-01-15T10:00:00"
+    country: str = None,
+    notes: str = None,
+    dive_duration: int = None,  # en minutos
+    water_temperature: float = None,
+    visibility: float = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Crear nuevo registro de buceo
+    """
+    try:
+        from app.models.dive_log import DiveLog
+        from app.models.user import User
+        from datetime import datetime
+        
+        # Verificar que el usuario existe
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Calcular siguiente dive number
+        last_dive = db.query(DiveLog).filter(DiveLog.user_id == user_id).order_by(DiveLog.dive_number.desc()).first()
+        next_dive_number = 1 if not last_dive else last_dive.dive_number + 1
+        
+        # Parsear fecha
+        dive_datetime = datetime.fromisoformat(dive_date.replace('Z', '+00:00'))
+        
+        # Crear dive log
+        new_dive = DiveLog(
+            user_id=user_id,
+            dive_number=next_dive_number,
+            dive_site_name=dive_site_name,
+            dive_date=dive_datetime,
+            max_depth=max_depth,
+            country=country,
+            notes=notes,
+            dive_duration=dive_duration,
+            water_temperature=water_temperature,
+            visibility=visibility
+        )
+        
+        db.add(new_dive)
+        db.commit()
+        db.refresh(new_dive)
+        
+        # Actualizar total_dives del usuario
+        user.total_dives = next_dive_number
+        if max_depth and (not user.max_depth_achieved or max_depth > user.max_depth_achieved):
+            user.max_depth_achieved = max_depth
+        db.commit()
+        
+        return {
+            "message": "✅ Dive log creado exitosamente",
+            "dive_id": new_dive.id,
+            "dive_number": new_dive.dive_number,
+            "dive_site": new_dive.dive_site_name,
+            "max_depth": new_dive.max_depth,
+            "user_total_dives": user.total_dives,
+            "created_at": str(new_dive.created_at)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating dive log: {str(e)}")
+
+@app.get("/api/v1/dive-logs/{user_id}")
+async def get_user_dive_logs(user_id: int, db: Session = Depends(get_db)):
+    """
+    Obtener todos los dive logs de un usuario
+    """
+    try:
+        from app.models.dive_log import DiveLog
+        from app.models.user import User
+        
+        # Verificar usuario
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Obtener dive logs
+        dive_logs = db.query(DiveLog).filter(DiveLog.user_id == user_id).order_by(DiveLog.dive_date.desc()).all()
+        
+        return {
+            "message": "✅ Dive logs obtenidos",
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "total_dives": user.total_dives,
+                "max_depth_achieved": user.max_depth_achieved
+            },
+            "dive_logs": [
+                {
+                    "id": dive.id,
+                    "dive_number": dive.dive_number,
+                    "dive_site_name": dive.dive_site_name,
+                    "dive_date": str(dive.dive_date),
+                    "max_depth": dive.max_depth,
+                    "country": dive.country,
+                    "notes": dive.notes,
+                    "dive_duration": dive.dive_duration,
+                    "water_temperature": dive.water_temperature,
+                    "visibility": dive.visibility
+                }
+                for dive in dive_logs
+            ],
+            "total_dives_count": len(dive_logs)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting dive logs: {str(e)}")
+    
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
