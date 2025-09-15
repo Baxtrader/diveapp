@@ -44,15 +44,22 @@ async def test_database(db: Session = Depends(get_db)):
     Test real de conexión a PostgreSQL
     """
     try:
-        # Ejecutar query real para probar conexión (SQLAlchemy 2.0 syntax)
-        result = db.execute(text("SELECT 1 as test_value, current_timestamp as timestamp, version() as db_version"))
+        # Import text dentro de la función para asegurar disponibilidad
+        from sqlalchemy import text
+        
+        # Ejecutar query real para probar conexión
+        result = db.execute(text("SELECT 1 as test_value, current_timestamp as timestamp"))
         row = result.fetchone()
+        
+        # Separar query para version
+        version_result = db.execute(text("SELECT version()"))
+        version_row = version_result.fetchone()
         
         return {
             "message": "✅ Conexión a base de datos exitosa",
             "test_result": row[0],
             "timestamp": str(row[1]),
-            "database_version": row[2][:50] + "..." if len(row[2]) > 50 else row[2],
+            "database_version": version_row[0][:50] + "..." if len(version_row[0]) > 50 else version_row[0],
             "environment": settings.ENVIRONMENT,
             "ready_for": "Crear tablas y endpoints"
         }
