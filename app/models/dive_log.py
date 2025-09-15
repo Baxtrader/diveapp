@@ -12,7 +12,7 @@ class DiveLog(Base):
     
     # Foreign keys
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    operator_id = Column(Integer, ForeignKey("operators.id"), nullable=True)
+    # operator_id = Column(Integer, ForeignKey("operators.id"), nullable=True)  # COMENTADO por ahora
     
     # Basic dive info
     dive_date = Column(DateTime, nullable=False)
@@ -65,7 +65,7 @@ class DiveLog(Base):
     
     # Relationships
     user = relationship("User", back_populates="dive_logs")
-    operator = relationship("Operator", back_populates="dive_logs")
+    # operator = relationship("Operator", back_populates="dive_logs")  # COMENTADO por ahora
     
     def __repr__(self):
         return f"<DiveLog(id={self.id}, site='{self.dive_site_name}', depth={self.max_depth}m)>"

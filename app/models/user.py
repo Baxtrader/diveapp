@@ -33,16 +33,13 @@ class User(Base):
     
     # Relationships
     dive_logs = relationship("DiveLog", back_populates="user")
-    posts = relationship("Post", back_populates="author")
-    likes = relationship("Like", back_populates="user")
-    comments = relationship("Comment", back_populates="author")
-    followers = relationship(
-        "Follow", 
-        foreign_keys="Follow.followed_id", 
-        back_populates="followed"
-    )
-    following = relationship(
-        "Follow", 
-        foreign_keys="Follow.follower_id", 
-        back_populates="follower"
-    )
+    
+    # Social features - COMENTADAS por ahora hasta crear las tablas correspondientes
+    # posts = relationship("Post", back_populates="author")
+    # likes = relationship("Like", back_populates="user")
+    # comments = relationship("Comment", back_populates="author")
+    # followers = relationship("Follow", foreign_keys="Follow.followed_id", back_populates="followed")
+    # following = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower")
+    
+    def __repr__(self):
+        return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"
