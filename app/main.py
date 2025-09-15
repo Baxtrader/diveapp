@@ -26,9 +26,10 @@ async def root():
     """
     return {
         "message": "¡Bienvenido a DiveApp API!",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "status": "running",
-        "environment": os.getenv("ENVIRONMENT", "development")
+        "environment": os.getenv("ENVIRONMENT", "development"),
+        "deploy_test": "forced_deploy"
     }
 
 @app.get("/health")
