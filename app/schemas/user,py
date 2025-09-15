@@ -1,0 +1,59 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+from datetime import datetime
+
+# Schema para registro de usuario
+class UserCreate(BaseModel):
+    email: EmailStr
+    username: str
+    full_name: Optional[str] = None
+    password: str
+    
+    # Información de buceo opcional
+    certification_level: Optional[str] = None
+    certification_agency: Optional[str] = None
+    total_dives: Optional[int] = 0
+    diving_since: Optional[datetime] = None
+
+# Schema para login
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+# Schema para respuesta de usuario (sin password)
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    username: str
+    full_name: Optional[str] = None
+    is_active: bool
+    is_verified: bool
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    certification_level: Optional[str] = None
+    certification_agency: Optional[str] = None
+    total_dives: int
+    max_depth_achieved: Optional[float] = None
+    diving_since: Optional[datetime] = None
+    created_at: datetime
+    last_login: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Schema para token de autenticación
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserResponse
+
+# Schema para actualizar perfil
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    certification_level: Optional[str] = None
+    certification_agency: Optional[str] = None
+    total_dives: Optional[int] = None
+    max_depth_achieved: Optional[float] = None
+    diving_since: Optional[datetime] = None
