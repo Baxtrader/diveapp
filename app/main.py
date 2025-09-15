@@ -7,7 +7,7 @@ import os
 app = FastAPI(
     title="DiveApp API",
     description="API para la aplicación de buceo",
-    version="1.0.0",
+    version="1.0.1",
 )
 
 # Add CORS middleware
