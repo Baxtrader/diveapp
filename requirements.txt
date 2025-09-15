@@ -8,7 +8,7 @@ sqlalchemy==2.0.27
 psycopg2-binary==2.9.9
 alembic==1.13.1
 
-# Geographic data - NECESARIO para los modelos de dive_log
+# Geographic data
 geoalchemy2==0.14.2
 shapely==2.0.2
 
@@ -16,14 +16,10 @@ shapely==2.0.2
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
-# Data validation
+# Data validation - AGREGAR email-validator
 pydantic==2.6.0
 pydantic-settings==2.1.0
 email-validator==2.1.0
 
 # Environment variables
 python-decouple==3.8
-
-# Development - versiones compatibles
-pytest==7.4.4
-pytest-asyncio==0.23.4
