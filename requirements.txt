@@ -8,6 +8,10 @@ sqlalchemy==2.0.27
 psycopg2-binary==2.9.9
 alembic==1.13.1
 
+# Geographic data - NECESARIO para los modelos de dive_log
+geoalchemy2==0.14.2
+shapely==2.0.2
+
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
