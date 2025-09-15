@@ -212,12 +212,42 @@ async def login_user_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
 
+def parse_flexible_date(date_str: str):
+    """
+    Parsear fecha en múltiples formatos comunes
+    """
+    from datetime import datetime
+    
+    # Formatos comunes a probar
+    formats = [
+        "%Y-%m-%d",      # 2025-01-15 (ISO)
+        "%d/%m/%Y",      # 15/01/2025 (día/mes/año)
+        "%m/%d/%Y",      # 01/15/2025 (mes/día/año)
+        "%d-%m-%Y",      # 15-01-2025
+        "%m-%d-%Y",      # 01-15-2025
+        "%d.%m.%Y",      # 15.01.2025
+        "%Y/%m/%d",      # 2025/01/15
+        "%d %m %Y",      # 15 01 2025
+        "%d-%b-%Y",      # 15-Jan-2025
+        "%d/%b/%Y",      # 15/Jan/2025
+    ]
+    
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+    
+    # Si ningún formato funciona, lanzar error
+    raise ValueError(f"Could not parse date '{date_str}'. Supported formats: DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD, DD-MM-YYYY, etc.")
+
 @app.post("/api/v1/dive-logs")
 async def create_dive_log(
     user_id: int,
     dive_site_name: str,
     max_depth: float,
-    dive_date: str,  # formato: "2025-01-15T10:00:00"
+    dive_date: str,  # Flexible: "15/01/2025", "2025-01-15", "01/15/2025", etc.
+    dive_time: str = "10:00",  # formato: "14:30" (opcional)
     country: str = None,
     notes: str = None,
     dive_duration: int = None,  # en minutos
@@ -227,11 +257,12 @@ async def create_dive_log(
 ):
     """
     Crear nuevo registro de buceo
+    Acepta múltiples formatos de fecha: DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD, etc.
     """
     try:
         from app.models.dive_log import DiveLog
         from app.models.user import User
-        from datetime import datetime
+        from datetime import datetime, time
         
         # Verificar que el usuario existe
         user = db.query(User).filter(User.id == user_id).first()
@@ -242,8 +273,22 @@ async def create_dive_log(
         last_dive = db.query(DiveLog).filter(DiveLog.user_id == user_id).order_by(DiveLog.dive_number.desc()).first()
         next_dive_number = 1 if not last_dive else last_dive.dive_number + 1
         
-        # Parsear fecha
-        dive_datetime = datetime.fromisoformat(dive_date.replace('Z', '+00:00'))
+        # Parsear fecha con formato flexible
+        try:
+            parsed_date = parse_flexible_date(dive_date)
+            
+            # Parsear hora
+            try:
+                hour, minute = map(int, dive_time.split(':'))
+                parsed_time = time(hour, minute)
+            except ValueError:
+                parsed_time = time(10, 0)  # Default 10:00
+            
+            # Combinar fecha y hora
+            dive_datetime = datetime.combine(parsed_date.date(), parsed_time)
+            
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         
         # Crear dive log
         new_dive = DiveLog(
@@ -274,7 +319,11 @@ async def create_dive_log(
             "dive_id": new_dive.id,
             "dive_number": new_dive.dive_number,
             "dive_site": new_dive.dive_site_name,
+            "dive_date": dive_date,
+            "dive_time": dive_time,
+            "parsed_datetime": str(dive_datetime),
             "max_depth": new_dive.max_depth,
+            "country": new_dive.country,
             "user_total_dives": user.total_dives,
             "created_at": str(new_dive.created_at)
         }
@@ -331,8 +380,7 @@ async def get_user_dive_logs(user_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting dive logs: {str(e)}")
-    
-    
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
