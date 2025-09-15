@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, Float, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from geoalchemy2 import Geography
+# from geoalchemy2 import Geography  # COMENTADO temporalmente por problemas NumPy
 from app.core.database import Base
 
 class DiveLog(Base):
@@ -20,8 +20,10 @@ class DiveLog(Base):
     dive_time_end = Column(DateTime, nullable=True)
     dive_duration = Column(Integer, nullable=True)  # in minutes
     
-    # Location
-    location = Geography(geometry_type='POINT', srid=4326, nullable=True)
+    # Location - SIN geoalchemy2 por ahora
+    # location = Geography(geometry_type='POINT', srid=4326, nullable=True)  # COMENTADO
+    location_lat = Column(Float, nullable=True)  # Latitud simple
+    location_lng = Column(Float, nullable=True)  # Longitud simple
     dive_site_name = Column(String, nullable=False)
     country = Column(String, nullable=True)
     region = Column(String, nullable=True)
